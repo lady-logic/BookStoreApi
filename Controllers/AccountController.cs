@@ -1,6 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using BookStoreApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace BookStoreApi.Controllers;
 
@@ -8,6 +12,13 @@ namespace BookStoreApi.Controllers;
 [Route("api/[controller]")]
 public class AccountController : ControllerBase
 {
+    private readonly IConfiguration _configuration;
+
+    public AccountController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+    
     [HttpPost("register")]
     [AllowAnonymous]
     public IActionResult Register([FromBody] RegisterModel model)
@@ -23,8 +34,32 @@ public class AccountController : ControllerBase
     [AllowAnonymous]
     public IActionResult Login([FromBody] LoginModel model)
     {
-        // TODO: Issue token or set fake identity
-        return Ok("Login successful.");
+        // Hardcoded User – nur als Demo
+        if (model.Email == "admin@admin.de" && model.Password == "password")
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, model.Email),
+                new Claim("role", "Admin") // für dein CustomRoleAttribute
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("super_secret_key_123")); // Geheim halten!
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: "BookStoreApi",
+                audience: "BookStoreApi",
+                claims: claims,
+                expires: DateTime.Now.AddHours(1),
+                signingCredentials: creds);
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token)
+            });
+        }
+
+        return Unauthorized();
     }
 
     [HttpGet("profile")]
