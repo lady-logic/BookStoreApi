@@ -14,8 +14,15 @@ public class CustomRoleAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var roleClaim = context.HttpContext.User.FindFirst("role")?.Value;
+        // Zuerst prüfen, ob der Benutzer authentifiziert ist
+        if (!context.HttpContext.User.Identity.IsAuthenticated)
+        {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
 
+        // Nach der Rolle mit dem korrekten Claim-Typ suchen
+        var roleClaim = context.HttpContext.User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
         if (roleClaim != _role)
         {
             context.Result = new ForbidResult();

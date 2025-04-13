@@ -30,6 +30,17 @@ public class AccountController : ControllerBase
         return Ok("User registered successfully.");
     }
 
+    [HttpGet("debug-claims")]
+    [Authorize] // Nur [Authorize], kein [CustomRole]
+    public IActionResult DebugClaims()
+    {
+        return Ok(new
+        {
+            IsAuthenticated = User.Identity.IsAuthenticated,
+            Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+        });
+    }
+
     [HttpPost("login")]
     [AllowAnonymous]
     public IActionResult Login([FromBody] LoginModel model)
@@ -43,7 +54,7 @@ public class AccountController : ControllerBase
                 new Claim("role", "Admin") // für dein CustomRoleAttribute
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("super_secret_key_123")); // Geheim halten!
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("ein_sehr_langer_und_sicherer_geheimer_schluessel_fuer_jwt_123456789"));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
